@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>계란 복수전: 선생님의 역습</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; text-align: center; background-color: #f0f8ff; }
+        #game-container { max-width: 800px; margin: 0 auto; }
+        .student-area { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+        .student { width: 100px; height: 120px; background: #fff; border: 2px solid #333; border-radius: 10px; 
+                   cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; 
+                   transition: transform 0.1s; position: relative; }
+        .student:hover { background: #e0e0e0; }
+        .student.active { background: #ffeb3b; transform: scale(1.1); }
+        .egg { position: absolute; font-size: 24px; top: -20px; animation: throw 0.5s forwards; }
+        @keyframes throw { from { top: 0; opacity: 1; } to { top: -100px; opacity: 0; } }
+        #status { font-size: 1.2rem; margin: 20px; font-weight: bold; color: #d32f2f; }
+        #score { font-size: 1rem; color: #555; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>🥚 계란 복수전</h1>
+        <p>학생들이 계란을 던진 <b>순서대로</b> 학생을 클릭해 복수하세요!</p>
+        <div id="status">준비...</div>
+        <div id="score">성공: 0 | 남은 계란: 0</div>
+        
+        <div class="student-area" id="student-grid">
+            </div>
+    </div>
+
+    <script>
+        // --- 연결 리스트 구현 ---
+        class Node {
+            constructor(data) {
+                this.data = data;
+                this.next = null;
+            }
+        }
+
+        class LinkedList {
+            constructor() {
+                this.head = null;
+                this.tail = null;
+                this.length = 0;
+            }
+
+            // 학생 추가 (계란 던짐)
+            enqueue(id) {
+                const newNode = new Node(id);
+                if (!this.head) {
+                    this.head = newNode;
+                    this.tail = newNode;
+                } else {
+                    this.tail.next = newNode;
+                    this.tail = newNode;
+                }
+                this.length++;
+            }
+
+            // 학생 확인 (복수 성공 시 제거)
+            dequeue() {
+                if (!this.head) return null;
+                const data = this.head.data;
+                this.head = this.head.next;
+                this.length--;
+                return data;
+            }
+
+            peek() {
+                return this.head ? this.head.data : null;
+            }
+        }
+
+        const list = new LinkedList();
+        const studentGrid = document.getElementById('student-grid');
+        const statusDisplay = document.getElementById('status');
+        const scoreDisplay = document.getElementById('score');
+        let successCount = 0;
+
+        // 학생 10명 화면에 배치
+        for (let i = 1; i <= 10; i++) {
+            const div = document.createElement('div');
+            div.className = 'student';
+            div.id = `student-${i}`;
+            div.innerHTML = `👤<br>학생 ${i}`;
+            div.onclick = () => checkAnswer(i);
+            studentGrid.appendChild(div);
+        }
+
+        // 학생들이 랜덤하게 계란을 던지는 함수
+        function studentThrowsEgg() {
+            if (successCount >= 20) { // 20번 성공하면 종료 (예시)
+                statusDisplay.innerText = "🎉 미션 완료! 모든 학생을 제압했습니다!";
+                return;
+            }
+
+            const randomStudentId = Math.floor(Math.random() * 10) + 1;
+            list.enqueue(randomStudentId);
+            
+            // 시각적 효과
+            const studentEl = document.getElementById(`student-${randomStudentId}`);
+            studentEl.classList.add('active');
+            const egg = document.createElement('span');
+            egg.className = 'egg';
+            egg.innerText = '🥚';
+            studentEl.appendChild(egg);
+
+            setTimeout(() => {
+                studentEl.classList.remove('active');
+                egg.remove();
+            }, 600);
+
+            updateUI();
+            
+            // 다음 계란 투척 예약
+            setTimeout(studentThrowsEgg, Math.max(1000 - (successCount * 50), 400));
+        }
+
+        // 선생님의 클릭 확인
+        function checkAnswer(studentId) {
+            const targetId = list.peek();
+            
+            if (targetId === null) {
+                statusDisplay.innerText = "던진 학생이 없습니다!";
+                return;
+            }
+
+            if (studentId === targetId) {
+                list.dequeue();
+                successCount++;
+                statusDisplay.innerText = "🎯 맞혔습니다! 다음 학생은?";
+                statusDisplay.style.color = "blue";
+            } else {
+                statusDisplay.innerText = "❌ 틀렸습니다! 순서를 다시 생각해보세요!";
+                statusDisplay.style.color = "red";
+            }
+            updateUI();
+        }
+
+        function updateUI() {
+            scoreDisplay.innerText = `성공: ${successCount} | 대기 중인 계란: ${list.length}`;
+        }
+
+        // 게임 시작
+        setTimeout(studentThrowsEgg, 1000);
+
+    </script>
+</body>
+</html>
